@@ -1,0 +1,46 @@
+import math
+
+class Bullet:
+    def __init__(self, x, y, z, vx, vy, vz):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.vx = vx
+        self.vy = vy
+        self.vz = vz
+
+    def update_position(self, dt):
+        self.x += self.vx * dt
+        self.y += self.vy * dt
+        self.z += self.vz * dt
+
+class Laser:
+    def __init__(self, x, y, z, target):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.target = target
+
+    def fire(self):
+        # Simplified laser firing logic: instant hit
+        dx = self.target.x - self.x
+        dy = self.target.y - self.y
+        dz = self.target.z - self.z
+        distance = math.sqrt(dx**2 + dy**2 + dz**2)
+        # Assuming laser speed is infinite for simplicity
+        time_to_hit = distance / 3e8  # Speed of light
+        self.target.x -= self.target.vx * time_to_hit
+        self.target.y -= self.target.vy * time_to_hit
+        self.target.z -= self.target.vz * time_to_hit
+
+def simulate(bullet, laser, dt):
+    while True:
+        bullet.update_position(dt)
+        laser.fire()
+        if bullet.x < 0 or bullet.x > 1000 or bullet.y < 0 or bullet.y > 1000 or bullet.z < 0 or bullet.z > 1000:
+            break
+
+# Example usage
+bullet = Bullet(0, 0, 0, 100, 50, 20)
+laser = Laser(500, 500, 500, bullet)
+simulate(bullet, laser, 0.01)
