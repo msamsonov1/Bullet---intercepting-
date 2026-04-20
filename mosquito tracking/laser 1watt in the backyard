@@ -1,0 +1,83 @@
+```python
+import cv2
+import numpy as np
+import time
+
+class MosquitoTracker:
+    def __init__(self):
+        # In a real build, replace with your custom YOLOv11-tiny model
+        # self.model = YOLO('mosquito_detector.pt')
+        
+        # State: [x, y, vx, vy]
+        self.state = np.array([0, 0, 0, 0], dtype=np.float32)
+        self.dt = 0.01  # 10ms loop time
+        
+        # Kalman Filter transition matrix
+        self.transition_matrix = np.array([
+            [1, 0, self.dt, 0],
+            [0, 1, 0, self.dt],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ], dtype=np.float32)
+
+    def predict_trajectory(self, current_pos, lead_time=0.02):
+        """
+        Predicts where the mosquito will be after 'lead_time' seconds.
+        """
+        x, y = current_pos
+        
+        # Update velocity (simplistic version)
+        vx = (x - self.state[0]) / self.dt
+        vy = (y - self.state[1]) / self.dt
+        
+        # Update state
+        self.state = np.array([x, y, vx, vy])
+        
+        # Lead the target
+        pred_x = x + (vx * lead_time)
+        pred_y = y + (vy * lead_time)
+        
+        return int(pred_x), int(pred_y)
+
+def run_defense_loop():
+    tracker = MosquitoTracker()
+    cap = cv2.VideoCapture(0) # High-speed global shutter camera recommended
+    
+    print("System Armed. Searching for wing-beat signatures...")
+
+    while True:
+        ret, frame = cap.read()
+        if not ret: break
+
+        # MOCK DETECTION (In production, this is your YOLO inference)
+        # mosquito_bbox = model.predict(frame)
+        # center_x, center_y = get_center(mosquito_bbox)
+        
+        # Visualizing the logic
+        h, w, _ = frame.shape
+        mock_x, mock_y = w//2, h//2 # Placeholder for detected mosquito
+        
+        # Calculate where to fire (aiming for the predicted wing location)
+        target_x, target_y = tracker.predict_trajectory((mock_x, mock_y))
+        
+        # Safety Check (Logic only)
+        is_safe = True # LiDAR check would go here
+        
+        if is_safe:
+            # Send coordinates to Galvanometer via Serial/DAC
+            # send_to_galvo(target_x, target_y)
+            cv2.circle(frame, (target_x, target_y), 5, (0, 0, 255), -1) # Red 'Laser' dot
+            cv2.putText(frame, "LOCKED", (target_x + 10, target_y), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
+        cv2.imshow("Backyard Air Defense", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    run_defense_loop()
+
+```
